@@ -10,7 +10,7 @@ docs
 
 usecase
 - configurable mappings between rewards and scripts
-  - my goto is always json but there might be a better approach in python
+  - my goto is always json
 ```
 { 
     "rewardName": "scriptName",
