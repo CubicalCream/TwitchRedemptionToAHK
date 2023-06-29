@@ -7,5 +7,5 @@ usecase
 - configurable mappings between rewards and scripts
 
 shit to learn
-- how to run ahk scripts with python
-  - EXEs or AHKs?
+- how to run ~~ahk scripts~~ EXEs with python
+  - ~~EXEs or AHKs?~~
