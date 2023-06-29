@@ -1,4 +1,5 @@
 # TwitchRedemptionToAHK
-Takes channel point redemptions from a twitch channel and runs autohotkey scripts based on those redemptions.
 
-and stuff i guess probably thank you thank you
+Simple Twitch app to run configurable AHK scripts when channel point rewards are redeemed
+
+Originally written for [CubicalCream](https://twitch.tv/cubicalcream) on twitch
