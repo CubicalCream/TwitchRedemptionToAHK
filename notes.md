@@ -5,6 +5,14 @@ library
 
 usecase
 - configurable mappings between rewards and scripts
+  - my goto is always json but there might be a better approach in python
+```
+{ 
+    "rewardName": "scriptName",
+    "rewardName": "scriptName",
+    ...
+}
+```
 
 shit to learn
 - how to run ~~ahk scripts~~ EXEs with python
