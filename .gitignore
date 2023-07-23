@@ -1,0 +1,9 @@
+# Ignore venv
+Scripts/
+Lib/
+Include/
+
+__pychache__/
+
+.env
+pyvenv.cfg

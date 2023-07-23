@@ -1,6 +1,6 @@
 **ROTMG pack**
 
-Sounds and EXEs have to be in the same folder
+/sounds and EXEs have to be in the same folder
 
 Can swap audio files as long as they have the same name
 
@@ -12,4 +12,4 @@ Can swap audio files as long as they have the same name
 - Forced Silent
   - RButton::n
 - Nexus NOW
-  - send r
+  - send "r"
