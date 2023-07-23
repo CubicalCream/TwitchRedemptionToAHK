@@ -3,7 +3,12 @@ Scripts/
 Lib/
 Include/
 
-__pychache__/
+__pycache__/
 
+# Ignore configurations
 .env
+scripts.py
 pyvenv.cfg
+
+# Ignore experiments
+*test.py

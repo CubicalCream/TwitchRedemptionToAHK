@@ -1,8 +1,6 @@
 **ROTMG pack**
 
-/sounds and EXEs have to be in the same folder
-
-Can swap audio files as long as they have the same name
+`/sounds` and `*.ahk` have to be in the same folder
 
 - Forced Confusion
   - a::s
