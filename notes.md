@@ -10,15 +10,10 @@ docs
 
 usecase
 - configurable mappings between rewards and scripts
-  - my goto is always json
-```
-{ 
-    "rewardName": "scriptName",
-    "rewardName": "scriptName",
-    ...
+```py
+paths = {
+    'ahk': 'C:/Users/Eric/AppData/Local/Programs/AutoHotkey/v2/AutoHotkey64.exe',
+    # ⮫ twitch redemption id                  ⮫ path to ahk script
+    '85f92ee0-ba16-4d69-b049-1b9062fbfbd4': './ahk/ROTMG/SoundTesting.ahk',
 }
 ```
-
-shit to learn
-- how to run ~~ahk scripts~~ EXEs with python
-  - ~~EXEs or AHKs?~~

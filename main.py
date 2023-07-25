@@ -1,6 +1,6 @@
 import subprocess
 from twitchAPI.twitch import Twitch
-from twitchAPI.oauth  import UserAuthenticator
+from twitchAPI.oauth  import UserAuthenticator, refresh_access_token
 from twitchAPI.types  import AuthScope
 from twitchAPI.helper import first
 from twitchAPI.pubsub import PubSub
@@ -18,7 +18,7 @@ CLIENT_ID:str      = config['CLIENT_ID']      # type: ignore
 CLIENT_SECRET:str  = config['CLIENT_SECRET']  # type: ignore
 TARGET_CHANNEL:str = config['TARGET_CHANNEL'] # type: ignore
 
-    # callback to run when a reward is redeemed
+# callback to run when a reward is redeemed
 async def redemption_callback(uuid: UUID, data: dict) -> None:
 
     # good fucking lord python why are you like this
@@ -38,9 +38,18 @@ async def redemption_callback(uuid: UUID, data: dict) -> None:
         print(f'Running "{scriptPath}" from "{rewardTitle}"...')
         subprocess.run([scripts.paths['ahk'], scriptPath])
 
-    # Start the thing
+async def user_refresh_callback(token: str, refresh_token: str):
+    print(f'refreshed user token: {token}')
+
+async def app_refresh_callback(token: str):
+    print(f'refreshed app token: {token}')
+
+# Start the thing
 async def startApp():
     twitch = await Twitch(CLIENT_ID, CLIENT_SECRET)
+
+    twitch.app_auth_refresh_callback = app_refresh_callback
+    twitch.user_auth_refresh_callback = user_refresh_callback
 
     target_scope = [AuthScope.CHANNEL_READ_REDEMPTIONS]
     auth = UserAuthenticator(twitch, target_scope, force_verify=False)
@@ -49,6 +58,8 @@ async def startApp():
     # add User authentication
     await twitch.set_user_authentication(token, target_scope, refresh_token)
     user = await first(twitch.get_users(logins=[TARGET_CHANNEL]))
+    print(await refresh_access_token(refresh_token, CLIENT_ID, CLIENT_SECRET))
+    print(await refresh_access_token(refresh_token, CLIENT_ID, CLIENT_SECRET))
     # TODO: use user token from .env probably
 
     # Setting up pubsub
