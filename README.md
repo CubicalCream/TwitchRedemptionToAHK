@@ -2,27 +2,26 @@
 
 Simple Twitch app to run configurable AHK scripts when channel point rewards are redeemed
 
-Originally written for [CubicalCream](https://twitch.tv/cubicalcream) on twitch
+Originally written for [CubicalCream](https://twitch.tv/cubicalcream) (ttv) by [kayt_was_taken](https://github.com/kaytwastaken/) (gh).
 
-Pytyhon instructions
-- 3.11+
-- use a venv
+Only tested on Python 3.11
+
+Usage instructions
+- `git clone https://github.com/CubicalCream/TwitchRedemptionToAHK.git`
+- `cd TwitchRedemptionToAHK`
+- Use a venv (optional but recommended)
   - see https://docs.python.org/3/library/venv.html
   - `python -m venv ./`
-  - `./scripts/activate` or your system's equivalent
-  - `python -m pip install -r requirements.txt`
-
-ITS ALL FUCKING BROKEN
-- see the rewrite branch for the hopefully working version
-
-~~Use instructions~~
-- ~~remove '_sample' from .env and scripts~~
-- ~~replace their contents with the appropriate values~~
-- ~~`python ./main.py`~~
-- ~~login in the tab that opened in your browser~~
-- ~~redeem point rewards in question and add their IDs to `scripts.py` accordingly~~
-- ~~shutdown the bot by pressing enter in the console~~
-  - ~~DONT USE CTRL+C~~
-  - ~~I HAVE NO CLUE WHY BUT IT DOESNT WORK AND I CANT BE BOTHERED TO FIX IT~~
-- ~~restart the bot~~
-- ~~🚀~~
+  - `./Scripts/activate` or your system's equivalent
+  - `deactivate` at any time to leave the venv
+- `python -m pip install -r requirements.txt`
+- Create a Twitch app and obtain:
+  - `Client ID`, `Client Secret`, `Access Token`, `Refresh Token`
+  - I'll write more verbose steps later
+  - The easiest method is to use the Twitch CLI
+- Remove '_sample' from .env and scripts
+- Populate .env and scripts.py values appropriately
+- `python ./main.py`
+- Redeem appropriate rewards to log IDs
+- Add reward IDs and paths to `scripts.py`
+- `python ./main.py`

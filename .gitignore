@@ -2,6 +2,7 @@
 Scripts/
 Lib/
 Include/
+share/
 
 __pycache__/
 
