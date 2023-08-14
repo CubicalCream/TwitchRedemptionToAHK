@@ -13,3 +13,6 @@ pyvenv.cfg
 
 # Ignore experiments
 *test.py
+
+# Ignore AHK
+ahk/

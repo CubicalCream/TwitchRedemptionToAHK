@@ -18,6 +18,7 @@ flow
 - start app
 - use `client_id` and `client_secret` to get `access_token` and `refresh_token`
   - `channel:read:redemptions` scope
+  - `twitch token -u -s 'channel:read:redemptions'`
   - this requires a full oauth client
   - for now, just load `access_token` and `refresh_token` from .env
 - check if user refresh is needed
