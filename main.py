@@ -1,6 +1,9 @@
 import asyncio
+import collections
 import random
 import subprocess
+import threading
+import time
 from dotenv import dotenv_values
 import requests
 import json
@@ -10,23 +13,15 @@ import websockets
 from websockets.exceptions import ConnectionClosed
 from websockets.frames import Close
 
-# Configure logging
-# This is used by both WebSockets and Requests
-import logging
-logging.basicConfig(
-    format="%(message)s",
-    level=logging.DEBUG,
-)
-
-# import script paths
+# Import AHK paths
 import scripts
 
-# define AuthorizationError
+# Define AuthorizationError
 # this is only used in the case that twitch unauthorizes this app, which ideally shouldn't happen
 class AuthorizationError(Exception):
     pass
 
-# import values from .env
+# Import values from .env
 config = dotenv_values()
 CLIENT_ID:str      = config["client_id"]      # type: ignore
 ACCESS_TOKEN:str   = config["ACCESS_TOKEN"]   # type: ignore
@@ -34,6 +29,11 @@ CLIENT_SECRET:str  = config["CLIENT_SECRET"]  # type: ignore
 REFRESH_TOKEN:str  = config["REFRESH_TOKEN"]  # type: ignore
 USER_ID: str
 
+# Declare a deque to store token and user id tuples
+# Whenever the token is revalidated, this is cleared and replaced with the newest token
+token_deque = collections.deque()
+
+# Get new user token using refresh token
 def _get_token():
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     data = {'client_id': CLIENT_ID,
@@ -67,11 +67,13 @@ def _validate(token=None):
         raise
 
     if (response.ok):
+        # If token is valid, set the appropriate vars and return
         print('Token OK')
         data = response.json()
         USER_ID = data["user_id"]
         return ACCESS_TOKEN if token == None else token, USER_ID
     if (response.status_code == 401):
+        # If token is invalid, get a new one
         print(f'Token validation failed with 401: {response.text}')
         print('Refreshing user token...')
         return _get_token()
@@ -80,32 +82,55 @@ def _validate(token=None):
         raise Exception("Unknown token verification error")
 
 # Generate random* strings for use in communication with Twitch
+# Basically a nonce guarantees that the server who responds is the same server you spoke to
 def nonce(length):
     """Generate pseudorandom number."""
     return ''.join([str(random.randint(0, 9)) for i in range(length)])
 
-# Schedule token_validation() to be run in an hour*, and return the value of validate()
-def token_validation(loop:asyncio.AbstractEventLoop):
-    try:
-        new_token = _validate()
-    except:
-        raise
-    else:
-        loop.call_later(3500, token_validation, loop)
-        return new_token
+# Method to be run in token_validation thread
+# Validate with either .env or current token, then run again in an hour*
+def token_validation():
+    while True:
+        try:
+            if (len(token_deque) == 0):
+                token_tuple = _validate()
+            else:
+                CURRENT_TOKEN, USER_ID = token_deque[0]
+                token_tuple = _validate(token=CURRENT_TOKEN)
+        except:
+            raise
+        else:
+            if (len(token_deque) > 0):
+                token_deque.pop()
+            token_deque.appendleft(token_tuple)
+            # *Spec requires an hour, but I'm scared so do it a bit sooner :D
+            time.sleep(3500+(random.random()*60))
 
-# Schedule repeat_ping() to be run in 3 minutes, and ping twitch to keep the websocket open
-async def repeat_ping(loop:asyncio.AbstractEventLoop, ws):
+# Method to be run in ping_thread thread
+# Send ping, exit if required, run again in three minutes*
+def repeat_ping(ws):
+    while True:
+        try:
+            asyncio.run(_ping(ws))
+        except SystemExit:
+            sys.exit(0)
+        except:
+            raise
+        else:
+            # *Spec requires 5
+            time.sleep(180+(random.random()*5))
+
+# Asyncronously run the ping, exit if required
+async def _ping(ws):
     try:
         await ws.send('{"type": "PING"}')
-        # await ws.ping()
         print('>>> {"type": "PING"}')
-        print(f'<<< {await ws.recv()}')
-        # TODO: wait for a {"type": "PONG"} response, if there is none within 10 seconds, attempt to reconnect, with exponential backoff.
+        # print(f'<<< {await ws.recv()}')
+        # TODO: wait for a {"type": "PONG"} response, if there is none within 10 seconds, attempt to reconnect with exponential backoff.
+    except SystemExit:
+            sys.exit(0)
     except:
         raise
-    else:        
-        loop.call_later((180+(random.random()*5)), repeat_ping, loop, ws)
 
 # Subscribe to specified topics
 async def subscribe(ws, topics:list, token:str):
@@ -124,7 +149,7 @@ async def subscribe(ws, topics:list, token:str):
     except:
         raise
 
-# callback to consume message from WebSocket
+# Callback to consume messages recieved from the WebSocket
 async def consume(message):
     data = json.loads(message)
     excerpt_length = 222
@@ -139,14 +164,14 @@ async def consume(message):
                 await redemption_callback(message["data"])
         case "RECONNECT":
             print('Reconnect message recieved, closing current connection...')
-            raise ConnectionClosed(Close(1000, 'Reconnect'), None)
-            # This is incredibly weird and probably not good practice...
+            raise ConnectionClosed(Close(1000, 'Reconnect'), None) #type: ignore
+            # FIXME This is incredibly weird and probably not good practice...
             # I guess we'll see if it works
         case "AUTH_REVOKED":
             print('Authorization revoked, closing process...')
             raise AuthorizationError
 
-# callback to run when a reward is redeemed
+# Callback to run when the recieved message indicates a reward was redeemed
 async def redemption_callback(data: dict) -> None:
     rewardId = data['redemption']['reward']['id']
     rewardTitle = data['redemption']['reward']['title']
@@ -156,38 +181,43 @@ async def redemption_callback(data: dict) -> None:
     if (rewardId in scripts.paths):
         scriptPath = scripts.paths[rewardId]
         print(f'Running "{scriptPath}" from "{rewardTitle}"...')
-        # C:/path/to/ahk.exe ./ahk/script.ahk
+        #              C:/path/to/ahk.exe
+        #              ^                      > ./ahk/script.ahk
         subprocess.run([scripts.paths['ahk'], scriptPath])
+        # See scripts.py for explanation of syntax
 
 # Start the thing
 async def main():
-    loop = asyncio.new_event_loop()
 
     # Validate token on start
-    # TODO make this run every hour in compliance with https://dev.twitch.tv/docs/authentication/validate-tokens/
     print('Validating token...')
-    try:
-        # Get the up to date token and user ID from twitch
-        CURRENT_TOKEN, USER_ID = token_validation(loop)
-    except:
-        raise
-    
+    validate_thread = threading.Thread(target=token_validation, daemon=True)
+    validate_thread.start()
+    # Wait for first validation to clear
+    while len(token_deque) == 0:
+        time.sleep(1)
+    CURRENT_TOKEN, USER_ID = token_deque[0]
+    print(f'Using User id: {USER_ID}')
+
     pubsub_uri = 'wss://pubsub-edge.twitch.tv'
     # Establish a connection to Twitch
     # async for ... will automatically reconnect if the connection fails
     # https://websockets.readthedocs.io/en/stable/faq/client.html#how-do-i-reconnect-when-the-connection-drops
     async for websocket in websockets.connect(pubsub_uri, ssl=True): # type: ignore
         try:
-            print('Opening websocket connection...\n')
+            print('\nOpening websocket connection...')
+            
             # Schedule pings every 3 minutes
-            await repeat_ping(loop, websocket)
+            print('\nSending opening ping...')
+            ping_thread = threading.Thread(target=repeat_ping, args=(websocket,), daemon=True)
+            ping_thread.start()
+            
             # Subscribe to point redemptions on the user's channel
+            print("\nSubscribing to point redemptions...")
             await subscribe(websocket, [f'channel-points-channel-v1.{USER_ID}'], CURRENT_TOKEN)
 
             # WebSocket message consumer
             # See https://websockets.readthedocs.io/en/stable/howto/patterns.html#consumer
-            # TODO This blocks execution of the event loop, figure out how to not do that
-            # Otherwise, as far as I can tell, everything is good
             async for message in websocket:
                 await consume(message)
             
@@ -195,6 +225,8 @@ async def main():
         except websockets.ConnectionClosed: # type: ignore
             continue
         except AuthorizationError:
+            sys.exit(0)
+        except SystemExit:
             sys.exit(0)
         except:
             raise

@@ -1,3 +1,1 @@
-- [ ] ws keepalive
-- [ ] validate every hr
 - [ ] split off twitch-related code for readability
