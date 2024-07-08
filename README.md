@@ -2,7 +2,7 @@
 
 Simple Twitch app to run configurable AHK scripts when channel point rewards are redeemed
 
-Originally written for [CubicalCream](https://twitch.tv/cubicalcream) (ttv) by [kayt_was_taken](https://github.com/kaytwastaken/) (gh).
+Originally written for [CubicalCream](https://twitch.tv/cubicalcream) (ttv) by [0x0079](https://github.com/0x0079/) (gh).
 
 Only tested on Python 3.11
 
